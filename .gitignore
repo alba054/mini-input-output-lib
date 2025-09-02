@@ -1,0 +1,12 @@
+__pycache__
+*env*
+*.json
+*.jsonl
+bak
+*.xlsx
+venv
+output_stiched
+*.err
+samples/
+data/
+dist/

@@ -1,0 +1,2 @@
+[console_scripts]
+spengine = spengine.main:main

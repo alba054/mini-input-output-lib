@@ -1,0 +1,31 @@
+Metadata-Version: 2.4
+Name: spengine
+Version: 1.0.0
+Summary: Mini Input Output Tool
+Author-email: Alif <yoyojr404@gmail.com>
+License-Expression: MIT
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: kafka-python
+Requires-Dist: boto3
+Requires-Dist: GeoAlchemy2
+Requires-Dist: greenstalk
+Requires-Dist: jmespath
+Requires-Dist: loguru
+Requires-Dist: openpyxl
+Requires-Dist: pandas
+Requires-Dist: pika
+Requires-Dist: Pillow
+Requires-Dist: psycopg2-binary
+Requires-Dist: pydantic
+Requires-Dist: pymongo
+Requires-Dist: python-dotenv
+Requires-Dist: python-ssdb
+Requires-Dist: requests
+Requires-Dist: SQLAlchemy
+Requires-Dist: srsly
+Requires-Dist: elasticsearch
+Dynamic: license-file
+
+# SPENGINE
