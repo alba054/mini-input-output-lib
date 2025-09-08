@@ -14,7 +14,7 @@ class Producer:
         self.producer.send(self.topic, json.dumps(message).encode("utf-8"))
 
 
-class Consumer:
+class KafkaBaseConsumer:
     consumer: KafkaConsumer
 
     def __init__(
@@ -37,6 +37,8 @@ class Consumer:
 
         self.consumer.subscribe(source_topic)
 
+
+class Consumer(KafkaBaseConsumer):
     def __iter__(self):
         while True:
             message_ = self.consumer.poll(60)
@@ -44,3 +46,13 @@ class Consumer:
                 # yield message_list
                 for message in message_list:
                     yield message
+
+
+# for batch kafka
+class ConsumerBatch(KafkaBaseConsumer):
+    def __iter__(self):
+        while True:
+            message_ = self.consumer.poll(60)
+            for _, message_list in message_.items():
+                # yield message_list
+                yield message_list

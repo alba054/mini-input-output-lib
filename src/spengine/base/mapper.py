@@ -12,5 +12,5 @@ class BaseMapper(ABC):
         self.include_in_field = include_in_field
 
     @abstractmethod
-    def map(self, data: dict, context: Context, additional_info: dict = None) -> list[dict] | dict:
+    def map(self, data: dict | list[dict], context: Context, additional_info: dict = None) -> list[dict] | dict:
         pass

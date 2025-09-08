@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: spengine
-Version: 1.0.0
+Version: 1.0.1a0
 Summary: Mini Input Output Tool
 Author-email: Alif <yoyojr404@gmail.com>
 License-Expression: MIT
@@ -29,3 +29,193 @@ Requires-Dist: elasticsearch
 Dynamic: license-file
 
 # SPENGINE
+
+
+### sample config rabbit to kafka
+```
+{
+  "input": {
+    "source": "rabbit",
+    "metadata": {
+      "host": "192.168.20.104",
+      "username": "dev",
+      "password": "rahasia2020",
+      "port": 5672,
+      "exchange": "percolator",
+      "exchangeType": "direct",
+      "queueName": "alif.test",
+      "prefetchCount": 1,
+      "routingKey": "",
+      "vhost": "/dev",
+      "durable": true
+    }
+  },
+  "processors": [
+    {
+      "type": "mapper",
+      "components": {
+        "mappers": [
+          {
+            "object": "mapper.product_review_mapper.create_product_review_enrichment_mapper",
+            "includeInField": "review"
+          }
+        ]
+      }
+    }
+  ],
+  "output": [
+    {
+      "target": "kafka",
+      "metadata": {
+        "brokers": [
+          "kafka01.research.ai:9092",
+          "kafka02.research.ai:9092",
+          "kafka03.research.ai:9092"
+        ],
+        "topic": "dfk-kemenkeu-social-media-raw"
+      }
+    }
+  ]
+}
+```
+
+### sample kafka to kafka
+```
+{
+  "input": {
+    "source": "kafka",
+    "metadata": {
+      "brokers": [
+        "kafka01.research.ai:9092",
+        "kafka02.research.ai:9092",
+        "kafka03.research.ai:9092"
+      ],
+    "topic": ["log-ig-ai-answer"],
+      "offset": "earliest",
+      "commit": false,
+      "poll": 10,
+      "groupId": "jasa-raharja-ticket-2pg:vtest"
+    }
+  },
+  "processors": [
+    {
+      "type": "mapper",
+      "components": {
+        "mappers": [
+          {
+            "object": "mapper.product_review_mapper.create_product_review_enrichment_mapper",
+            "includeInField": "review"
+          }
+        ]
+      }
+    }
+  ],
+  "output": [
+    {
+      "target": "kafka",
+      "metadata": {
+        "brokers": [
+          "kafka01.research.ai:9092",
+          "kafka02.research.ai:9092",
+          "kafka03.research.ai:9092"
+        ],
+        "topic": "dfk-kemenkeu-social-media-raw"
+      }
+    }
+  ]
+}
+```
+
+### sample kafka to rabbit
+```
+{
+  "input": {
+    "source": "kafka",
+    "metadata": {
+      "brokers": [
+        "kafka01.research.ai:9092",
+        "kafka02.research.ai:9092",
+        "kafka03.research.ai:9092"
+      ],
+    "topic": ["log-ig-ai-answer"],
+      "offset": "earliest",
+      "commit": false,
+      "poll": 10,
+      "groupId": "jasa-raharja-ticket-2pg:vtest"
+    }
+  },
+  "processors": [
+    {
+      "type": "mapper",
+      "components": {
+        "mappers": [
+          {
+            "object": "mapper.product_review_mapper.create_product_review_enrichment_mapper",
+            "includeInField": "review"
+          }
+        ]
+      }
+    }
+  ],
+  "output": [
+    {
+      "target": "rabbit",
+      "metadata": {
+        "host": "192.168.20.104",
+        "user": "dev",
+        "password": "rahasia2020",
+        "port": 5672,
+        "exchange": "percolator",
+        "exchangeType": "direct",
+        "queueName": "alif.test",
+        "prefetchCount": 1,
+        "routingKey": null,
+        "vhost": "/dev",
+        "durable": true,
+        "name": "sample_producer"
+      }
+    }
+  ]
+}
+
+
+```
+## mapper
+```
+{
+            "object": "mapper.product_review_mapper.create_product_review_enrichment_mapper",
+            "includeInField": "review"
+}
+```
+the function that creates mapper should be relative with current working directory, the value of "object" is like importing library in python
+### sample mapper
+```
+from spengine.base.mapper import BaseMapper
+from spengine.core.context import Context
+
+
+
+class Mapper(BaseMapper):
+    def map(self, data: dict, context: Context, additional_info: dict = None) -> list[dict] | dict:
+        return data
+
+def create_mapper(include_in_field: str) -> Mapper:
+    return Mapper(include_in_field)
+```
+
+
+
+
+## run
+1. build first
+```
+python3 -m build
+```
+2. install
+```
+pip install dist/spengine-1.0.0-py3-none-any
+```
+3. run
+```
+spengine <path_to_config>
+```

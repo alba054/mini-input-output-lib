@@ -67,7 +67,7 @@ class KafkaOutputFactory:
 class FileOutputFactory:
     @staticmethod
     def build(config: dict) -> FileTargetOutput:
-        return FileTargetOutput()
+        return FileTargetOutput(filepath=config.get("filepath"))
 
 
 class PgOutputFactory:
@@ -136,7 +136,7 @@ class OutputFactory:
         if config["target"] == "kafka":
             return KafkaOutputFactory.build(config["metadata"])
         elif config["target"] == "file":
-            return FileOutputFactory.build(None)
+            return FileOutputFactory.build(config["metadata"])
         elif config["target"] == "pg":
             return PgOutputFactory.build(config["metadata"])
         elif config["target"] == "s3":

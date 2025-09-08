@@ -1,6 +1,5 @@
 from spengine.base.observer import BaseObserver
 from spengine.data_source.data_source_subject import DataSourceSubject
-from spengine.model.pg_metadata import PgMetadata
 from spengine.model.elastic_metadata import ElasticMetadata
 from spengine.app._elastic import ElasticClient
 

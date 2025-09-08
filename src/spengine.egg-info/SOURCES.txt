@@ -40,6 +40,7 @@ src/spengine/core/mapper/outer_mapper.py
 src/spengine/data_source/beanstalkd_subject.py
 src/spengine/data_source/data_source_subject.py
 src/spengine/data_source/file_subject.py
+src/spengine/data_source/kafka_batch_subject .py
 src/spengine/data_source/kafka_subject.py
 src/spengine/data_source/rabbit_subject.py
 src/spengine/data_source/xls_subject.py
