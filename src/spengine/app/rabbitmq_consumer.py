@@ -1,5 +1,5 @@
 import functools
-import time
+import ssl
 from loguru import logger
 import pika
 
@@ -31,6 +31,7 @@ class RabbitConsumer(object):
         routing_key: str = None,
         prefetch_count: int = 1,
         durable: bool = True,
+        tls: bool = False,
     ):
         """Create a new instance of the consumer class, passing in the AMQP
         URL used to connect to RabbitMQ.
@@ -60,6 +61,12 @@ class RabbitConsumer(object):
         self.QUEUE = queue_name
         self.ROUTING_KEY = routing_key
         self.on_message = on_message
+        self.ssl_context = None
+
+        if tls:
+            self.ssl_context = ssl.create_default_context()
+            self.ssl_context.check_hostname = False
+            self.ssl_context.verify_mode = ssl.CERT_NONE
 
     def connect(self):
         """This method connects to RabbitMQ, returning the connection handle.
@@ -76,6 +83,7 @@ class RabbitConsumer(object):
                 port=self.port,
                 virtual_host=self.vhost,
                 credentials=pika.PlainCredentials(self.user, self.password),
+                ssl_options=pika.SSLOptions(context=self.ssl_context) if self.ssl_context is not None else None,
             ),
             on_open_callback=self.on_connection_open,
             on_open_error_callback=self.on_connection_open_error,

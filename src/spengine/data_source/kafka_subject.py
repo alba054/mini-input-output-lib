@@ -17,7 +17,12 @@ class KafkaSource(DataSourceSubject):
             self.additional_info = {"kafka_timestamp": message.timestamp}
 
             for processor in self.processors:
-                self.data = processor.process(data=self.data, additional_info=self.additional_info)
+                try:
+                    self.data = processor.process(data=self.data, additional_info=self.additional_info)
+                except Exception as e:
+                    logger.error(e)
+                    self.data = None
+                    break
 
             for observer in self._service_observers:
                 try:

@@ -21,6 +21,7 @@ class RabbitSource(DataSourceSubject):
         routing_key: str = "",
         prefetch_count: int = 1,
         durable: bool = True,
+        tls: bool = False,
     ):
         super().__init__(processors=processors)
         self._reconnect_delay = 0
@@ -35,6 +36,8 @@ class RabbitSource(DataSourceSubject):
         self.routing_key = routing_key
         self.prefetch_count = prefetch_count
         self.durable = durable
+        self.tls = tls
+
         self._consumer = RabbitConsumer(
             self.host,
             self.port,
@@ -47,6 +50,7 @@ class RabbitSource(DataSourceSubject):
             self.on_message,
             self.routing_key,
             self.durable,
+            tls=self.tls,
         )
 
     def on_message(self, _unused_channel, basic_deliver, properties, body):
@@ -61,6 +65,9 @@ class RabbitSource(DataSourceSubject):
 
             self._consumer.acknowledge_message(basic_deliver.delivery_tag)
         except Exception as e:
+            import traceback
+
+            traceback.print_exc()
             logger.error(e)
 
     def notify(self):
@@ -91,6 +98,7 @@ class RabbitSource(DataSourceSubject):
                 self.on_message,
                 self.routing_key,
                 self.durable,
+                tls=self.tls,
             )
 
     def _get_reconnect_delay(self):

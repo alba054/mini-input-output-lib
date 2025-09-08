@@ -47,6 +47,7 @@ class RabbitOutputFactory:
                 user=config["user"],
                 vhost=config.get("vhost", "/"),
                 routing_key=config.get("routingKey"),
+                tls=config.get("tls", False),
             ),
             excluded=config.get("exclude", []),
         )

@@ -1,5 +1,6 @@
+import ssl
 import threading
-from pika import ConnectionParameters, BlockingConnection, PlainCredentials
+from pika import ConnectionParameters, BlockingConnection, PlainCredentials, SSLOptions
 
 
 class RabbitPublisher(threading.Thread):
@@ -16,6 +17,7 @@ class RabbitPublisher(threading.Thread):
         vhost: str,
         durable: bool = True,
         routing_key: str = None,
+        tls: bool = False,
     ):
         super().__init__()
         self.daemon = True
@@ -33,7 +35,21 @@ class RabbitPublisher(threading.Thread):
         self.routing_key = routing_key
 
         credentials = PlainCredentials(self.user, self.password)
-        parameters = ConnectionParameters(self.host, self.port, credentials=credentials, virtual_host=self.vhost)
+
+        ssl_context = None
+
+        if tls:
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+
+        parameters = ConnectionParameters(
+            self.host,
+            self.port,
+            credentials=credentials,
+            virtual_host=self.vhost,
+            ssl_options=SSLOptions(context=ssl_context) if ssl_context is not None else None,
+        )
         self.connection = BlockingConnection(parameters)
         self.channel = self.connection.channel()
         self.channel.exchange_declare(exchange=self.exchange, exchange_type=self.exchange_type, durable=self.durable)

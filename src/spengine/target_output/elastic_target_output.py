@@ -24,9 +24,16 @@ class EsTargetOutput(BaseObserver):
                 self.db.bulk_insert(mdata)
             else:
                 for md in mdata:
-                    self.db.index(md["_index"], md, md["_id"])
+                    _index = md["_index"]
+                    _id = md["_id"]
+                    md = {k: v for k, v in md.items() if k not in self.metadata.exclude}
+
+                    self.db.index(_index, md, _id)
         elif isinstance(mdata, dict):
-            self.db.index(mdata["_index"], mdata, mdata["_id"])
+            _index = mdata["_index"]
+            _id = mdata["_id"]
+            mdata = {k: v for k, v in mdata.items() if k not in self.metadata.exclude}
+            self.db.index(_index, mdata, _id)
         elif mdata is None:
             return
         else:
@@ -35,9 +42,15 @@ class EsTargetOutput(BaseObserver):
     def _upsert(self, mdata: list[dict] | dict, metadata: ElasticMetadata):
         if isinstance(mdata, list):
             for md in mdata:
-                self.db.upsert_data(md["_index"], md, md["_id"])
+                _index = md["_index"]
+                _id = md["_id"]
+                md = {k: v for k, v in md.items() if k not in self.metadata.exclude}
+                self.db.upsert_data(_index, md, _id)
         elif isinstance(mdata, dict):
-            self.db.index(mdata["_index"], mdata, mdata["_id"])
+            _index = mdata["_index"]
+            _id = mdata["_id"]
+            mdata = {k: v for k, v in mdata.items() if k not in self.metadata.exclude}
+            self.db.upsert_data(_index, mdata, _id)
         elif mdata is None:
             return
         else:
@@ -46,9 +59,15 @@ class EsTargetOutput(BaseObserver):
     def _update_with_painless(self, mdata: list[dict] | dict, metadata: ElasticMetadata):
         if isinstance(mdata, list):
             for md in mdata:
-                self.db.upsert_data_with_painless(md["_index"], md["_id"], metadata.painless, md)
+                _index = md["_index"]
+                _id = md["_id"]
+                md = {k: v for k, v in md.items() if k not in self.metadata.exclude}
+                self.db.upsert_data_with_painless(_index, _id, metadata.painless, md)
         elif isinstance(mdata, dict):
-            self.db.upsert_data_with_painless(mdata["_index"], mdata["_id"], metadata.painless, mdata)
+            _index = mdata["_index"]
+            _id = mdata["_id"]
+            mdata = {k: v for k, v in mdata.items() if k not in self.metadata.exclude}
+            self.db.upsert_data_with_painless(_index, _id, metadata.painless, mdata)
         elif mdata is None:
             return
         else:
@@ -63,7 +82,6 @@ class EsTargetOutput(BaseObserver):
         if isinstance(data, list):
             data = self._validate_list_of_dictionaries(data)
         elif isinstance(data, dict):
-            data = {k: v for k, v in data.items() if k not in self.metadata.exclude}
             if "_index" not in data.keys() or "_id" not in data.keys():
                 raise ValueError("data must have _index and _id")
 
