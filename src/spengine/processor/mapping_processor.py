@@ -16,7 +16,7 @@ class MappingProcessor(BaseProcessor):
         if kwargs.get("data") is None:
             raise
 
-        if not isinstance(kwargs.get("data"), dict):
+        if not isinstance(kwargs.get("data"), dict) and not self._validate_list_of_dict(kwargs.get("data")):
             raise
 
         mapped = dict()
@@ -30,6 +30,8 @@ class MappingProcessor(BaseProcessor):
             if mapper.include_in_field != "*":
                 mapped[mapper.include_in_field] = r
             else:
+                if isinstance(r, list):
+                    return r  # return as a list not dictionary
                 mapped.update(r)
 
         return mapped

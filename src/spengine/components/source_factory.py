@@ -12,6 +12,7 @@ from spengine.processor.base_processor import BaseProcessor
 class RabbitSourceFactory:
     @staticmethod
     def build(config: dict, processors: list[BaseProcessor]) -> RabbitSource:
+        print(config["tls"])
         return RabbitSource(
             processors=processors,
             host=config["host"],
@@ -25,6 +26,7 @@ class RabbitSourceFactory:
             queue_name=config["queueName"],
             routing_key=config.get("routingKey"),
             durable=config.get("durable", True),
+            tls=config["tls"],
         )
 
 

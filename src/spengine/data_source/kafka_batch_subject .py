@@ -1,13 +1,13 @@
 from loguru import logger
-from spengine.app.kafka import Consumer
+from spengine.app.kafka import Consumer, ConsumerBatch
 from spengine.data_source.data_source_subject import DataSourceSubject
 from spengine.processor.base_processor import BaseProcessor
 
 
-class KafkaSource(DataSourceSubject):
+class KafkaBatchSource(DataSourceSubject):
     consumer: Consumer
 
-    def __init__(self, consumer: Consumer, processors: list[BaseProcessor]):
+    def __init__(self, consumer: ConsumerBatch, processors: list[BaseProcessor]):
         super().__init__(processors=processors)
         self.consumer = consumer
 
@@ -17,12 +17,7 @@ class KafkaSource(DataSourceSubject):
             self.additional_info = {"kafka_timestamp": message.timestamp}
 
             for processor in self.processors:
-                try:
-                    self.data = processor.process(data=self.data, additional_info=self.additional_info)
-                except Exception as e:
-                    logger.error(e)
-                    self.data = None
-                    break
+                self.data = processor.process(data=self.data, additional_info=self.additional_info)
 
             for observer in self._service_observers:
                 try:

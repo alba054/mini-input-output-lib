@@ -8,18 +8,30 @@ class FilterProcessor(BaseProcessor):
         super().__init__()
         self.tree_config = operator_config
 
-    def process(self, *args, **kwargs):
+    def process(self, *args, **kwargs) -> dict | list[dict] | None:
         if kwargs.get("data") is None:
             raise
 
-        if not isinstance(kwargs.get("data"), dict):
+        if not isinstance(kwargs.get("data"), dict) and not self._validate_list_of_dict(kwargs.get("data")):
             raise
 
-        tree = TreeBuilder().build(self.tree_config, kwargs.get("data"))
+        if isinstance(kwargs.get("data"), dict):
+            tree = TreeBuilder().build(self.tree_config, kwargs.get("data"))
 
-        if not tree.solve():
-            return None
+            if not tree.solve():
+                return None
 
-        logger.info("found")
-        # time.sleep(5)
-        return kwargs.get("data")
+            logger.info("found")
+            return kwargs.get("data")
+        else:
+            filtered = []
+            for d in kwargs.get("data"):
+                tree = TreeBuilder().build(self.tree_config, d)
+
+                if tree.solve():
+                    logger.info("found")
+                    filtered.append(d)
+
+            return filtered
+
+        return None

@@ -19,7 +19,6 @@ class KafkaTargetOutput(BaseObserver):
         data = subject.data
 
         try:
-
             if data is None:
                 return
 
