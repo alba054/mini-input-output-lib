@@ -152,3 +152,10 @@ class ElasticClient:
         )
         logger.info(result)
         logger.success(f"Success update data to = '{index}' || '{id}'")
+
+    def update_by_query(self, index, query, painless_script, params):
+        self.es.update_by_query(
+            index=index,
+            body={"script": {"source": painless_script, "lang": "painless", "params": params}, "query": query},
+        )
+        logger.info(f"success updating {index}")
