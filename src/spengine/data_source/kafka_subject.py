@@ -28,5 +28,8 @@ class KafkaSource(DataSourceSubject):
                 try:
                     observer.update(self)
                 except Exception as e:
+                    import traceback
+
+                    traceback.print_exc()
                     logger.error(e)
                     continue

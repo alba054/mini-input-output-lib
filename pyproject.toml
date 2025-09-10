@@ -10,7 +10,7 @@ where = ["src"]
 
 [project]
 name = "spengine"
-version = "1.0.1a"
+version = "1.2.0a"
 description = "Mini Input Output Tool"
 authors = [
     { name="Alif", email="yoyojr404@gmail.com" }
@@ -18,7 +18,7 @@ authors = [
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
-dependencies = ["kafka-python", "boto3", "GeoAlchemy2", "greenstalk", "jmespath", "loguru", "openpyxl", "pandas", "pika", "Pillow", "psycopg2-binary", "pydantic", "pymongo", "python-dotenv", "python-ssdb", "requests", "SQLAlchemy", "srsly", "elasticsearch"]
+dependencies = ["kafka-python", "boto3", "GeoAlchemy2", "greenstalk", "jmespath", "loguru", "openpyxl", "pandas==2.2.3", "pika", "Pillow", "psycopg2-binary", "pydantic", "pymongo", "python-dotenv", "python-ssdb", "requests", "SQLAlchemy==2.0.41", "srsly", "elasticsearch"]
 
 [project.scripts]
 spengine = "spengine.main:main"
