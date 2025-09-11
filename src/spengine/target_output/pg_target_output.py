@@ -23,7 +23,7 @@ class PgTargetOutput(BaseObserver):
         if "*" in metadata.exclude:
             excluded = {metadata.source: data[metadata.source]}
         else:
-            excluded = {k: v for k, v in data.items() if k not in metadata.exclude}
+            excluded = {k: v for k, v in data.items() if k not in metadata.exclude and k != "pg_info_"}
 
         if metadata.source != "*":
             mdata = excluded[metadata.source]
@@ -32,11 +32,22 @@ class PgTargetOutput(BaseObserver):
 
         return mdata
 
+    def _get_pg_additional_info(self, data: dict) -> dict:
+        return data.get("pg_info_")
+
     def _insert(self, mdata: list[dict] | dict, metadata: PgMetadata):
         if isinstance(mdata, list):
+            #! cannot handle if mdata is a list
             self.db.ingest(mdata, len(mdata), metadata.table_name, metadata.schema_name)
         elif isinstance(mdata, dict):
-            self.db.ingest([mdata], 1, metadata.table_name, metadata.schema_name)
+            pg_info = self._get_pg_additional_info(mdata)
+            excluded_cols = None
+            if pg_info is not None:
+                excluded_cols = pg_info.get("on_update_excluded_cols")
+            if "pg_info_" in mdata.keys():
+                mdata.pop("pg_info_")
+
+            self.db.ingest([mdata], 1, metadata.table_name, metadata.schema_name, excluded_cols)
         elif mdata is None:
             return
         else:
@@ -48,6 +59,7 @@ class PgTargetOutput(BaseObserver):
 
         if isinstance(mdata, list):
             for md in mdata:
+                mdata = self._exclude_data(metadata, mdata)
                 self.db.update_rows(
                     table=metadata.table_name,
                     schema=metadata.schema_name,
@@ -56,6 +68,7 @@ class PgTargetOutput(BaseObserver):
                     update_values={k: md[k] for k in metadata.update_metadata.updated_values},
                 )
         elif isinstance(mdata, dict):
+            mdata = self._exclude_data(metadata, mdata)
             self.db.update_rows(
                 table=metadata.table_name,
                 schema=metadata.schema_name,
@@ -73,7 +86,6 @@ class PgTargetOutput(BaseObserver):
 
         for metadata in self.metadatas:
             mdata = self._exclude_data(metadata, data)
-
             if metadata.mode == "insert":
                 self._insert(mdata, metadata)
             elif metadata.mode == "update":

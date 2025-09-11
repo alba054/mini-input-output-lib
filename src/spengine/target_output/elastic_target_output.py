@@ -1,3 +1,4 @@
+import copy
 from spengine.base.observer import BaseObserver
 from spengine.data_source.data_source_subject import DataSourceSubject
 from spengine.model.elastic_metadata import ElasticMetadata
@@ -41,29 +42,28 @@ class EsTargetOutput(BaseObserver):
                     lst[i] = replace[item]
         return lst
 
-    # {"id": "<id>"}
     def _update_by_query(self, mdata: list[dict] | dict, metadata: ElasticMetadata):
         if isinstance(mdata, list):
             for md in mdata:
                 _index = md["_index"]
+                query = copy.deepcopy(metadata.query)
                 query_params = {f"<{k}>": md[k] for k in metadata.query_params}
                 md = {k: v for k, v in md.items() if k not in self.metadata.exclude}
                 md = {k: v for k, v in md.items() if k not in self.metadata.query_params}
 
-                self._recursively_iterate_dict_and_replace(metadata.query, query_params)
+                self._recursively_iterate_dict_and_replace(query, query_params)
 
-                self.db.update_by_query(
-                    index=_index, query=metadata.query, painless_script=metadata.painless, params=md
-                )
+                self.db.update_by_query(index=_index, query=query, painless_script=metadata.painless, params=md)
         elif isinstance(mdata, dict):
             _index = mdata["_index"]
+            query = copy.deepcopy(metadata.query)
             query_params = {f"<{k}>": mdata[k] for k in metadata.query_params}
             mdata = {k: v for k, v in mdata.items() if k not in self.metadata.exclude}
             mdata = {k: v for k, v in mdata.items() if k not in self.metadata.query_params}
 
-            self._recursively_iterate_dict_and_replace(metadata.query, query_params)
+            self._recursively_iterate_dict_and_replace(query, query_params)
 
-            self.db.update_by_query(index=_index, query=metadata.query, painless_script=metadata.painless, params=mdata)
+            self.db.update_by_query(index=_index, query=query, painless_script=metadata.painless, params=mdata)
         elif mdata is None:
             return
         else:

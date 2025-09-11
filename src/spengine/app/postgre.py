@@ -5,6 +5,7 @@ from geoalchemy2 import Geography, Geometry, WKTElement
 
 from loguru import logger
 
+import psycopg2
 from sqlalchemy import create_engine, func, inspect, text
 from sqlalchemy.dialects.postgresql import insert
 
@@ -20,8 +21,10 @@ class PgSaService:
         self._host = host
         self._port = port
         self._db = db
+        self._username = username
+        self._password = password
         self._hash = generate_id_str(f"{host}{port}{db}")
-        self.connect = self.connection(username, password, host, port, db)
+        self.connect = create_engine("postgresql+psycopg2://", creator=self.connection).connect()
 
     def __call__(cls, username, password, host, port, db):
         hash = generate_id_str(f"{host}{port}{db}")
@@ -38,6 +41,30 @@ class PgSaService:
             constraint=f"{table.table.name}_pkey",
             set_={column.key: column for column in insert_statement.excluded},
         )
+        result = conn.execute(conflict_update)
+        return result.rowcount
+
+    def insert_on_conflict_nothing_custom_set(self, table, conn, keys, data_iter, exclude_cols=None):
+        data = [dict(zip(keys, row)) for row in data_iter]
+        insert_statement = insert(table.table).values(data)
+
+        if exclude_cols:
+            # Update only the specified columns
+            conflict_update = insert_statement.on_conflict_do_update(
+                constraint=f"{table.table.name}_pkey",
+                set_={
+                    col: insert_statement.excluded[col]
+                    for col in insert_statement.excluded.keys()
+                    if col not in exclude_cols
+                },
+            )
+        else:
+            # Update all columns by default
+            conflict_update = insert_statement.on_conflict_do_update(
+                constraint=f"{table.table.name}_pkey",
+                set_={column.key: column for column in insert_statement.excluded},
+            )
+
         result = conn.execute(conflict_update)
         return result.rowcount
 
@@ -152,12 +179,12 @@ class PgSaService:
 
             return inserted_rows
 
-    def connection(self, username, password, host, port, db):
-        POSTGREE_URI = f"postgresql+psycopg2://{username}:{password}@{host}:{port}/{db}"
-        db = create_engine(POSTGREE_URI)
-        return db.connect()
+    def connection(self):
+        return psycopg2.connect(
+            f"dbname={self._db} user={self._username} password={self._password} host={self._host} port={self._port}"
+        )
 
-    def ingest(self, data: list, chunk_size, tb_name, schema=None):
+    def ingest(self, data: list, chunk_size, tb_name, schema=None, exclude_cols=None):
         try:
             df = pd.DataFrame(data)
             # if len(df) > 1:
@@ -165,7 +192,10 @@ class PgSaService:
             total_data = len(df)
             connect = self.connect
 
+            print(type(connect))
+
             # connect = self.connection()
+            # with self.connect.begin() as connect:
             if schema:
                 df.to_sql(
                     tb_name,
@@ -174,7 +204,9 @@ class PgSaService:
                     if_exists="append",
                     index=False,
                     schema=schema,
-                    method=self.insert_on_conflict_nothing,
+                    method=lambda table, conn, keys, data_iter: self.insert_on_conflict_nothing_custom_set(
+                        table, conn, keys, data_iter, exclude_cols=exclude_cols
+                    ),
                 )
             else:
                 df.to_sql(
@@ -183,18 +215,20 @@ class PgSaService:
                     chunksize=chunk_size,
                     if_exists="append",
                     index=False,
-                    method=self.insert_on_conflict_nothing,
+                    method=lambda table, conn, keys, data_iter: self.insert_on_conflict_nothing_custom_set(
+                        table, conn, keys, data_iter, exclude_cols=exclude_cols
+                    ),
                 )
 
             # connect.close()
-            connect.commit()
+            # connect.commit()
             logger.info(f"Total Data Insert = {total_data} || {tb_name}")
             return total_data
 
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
-            connect.rollback()
+            # connect.rollback()
             # connect.close()
             return 0
 
