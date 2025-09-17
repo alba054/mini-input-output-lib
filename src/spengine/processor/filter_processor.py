@@ -33,5 +33,3 @@ class FilterProcessor(BaseProcessor):
                     filtered.append(d)
 
             return filtered
-
-        return None

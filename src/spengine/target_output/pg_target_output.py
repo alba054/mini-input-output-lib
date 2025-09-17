@@ -18,17 +18,44 @@ class PgTargetOutput(BaseObserver):
         self.db = db
         self.metadatas = metadatas
 
-    def _exclude_data(self, metadata: PgMetadata, data: dict) -> list[dict] | dict:
+    def _exclude_data(self, metadata: PgMetadata, data: dict | list[dict]) -> list[dict] | dict:
         # * "*" asterisk represent exclude all but source
         if "*" in metadata.exclude:
-            excluded = {metadata.source: data[metadata.source]}
+            if isinstance(data, list):
+                temp = []
+                for md in data:
+                    temp.append({metadata.source: md[metadata.source]})
+
+                excluded = temp
+            else:
+                excluded = {metadata.source: data[metadata.source]}
         else:
-            excluded = {k: v for k, v in data.items() if k not in metadata.exclude and k != "pg_info_"}
+            if isinstance(data, list):
+                temp = []
+                for md in data:
+                    temp.append({k: v for k, v in md.items() if k not in metadata.exclude and k != "pg_info_"})
+                excluded = temp
+            else:
+                excluded = {k: v for k, v in data.items() if k not in metadata.exclude and k != "pg_info_"}
 
         if metadata.source != "*":
-            mdata = excluded[metadata.source]
+            if isinstance(excluded, list):
+                temp = []
+                for md in excluded:
+                    temp.append(md[metadata.source])
+
+                mdata = temp
+            else:
+                mdata = excluded[metadata.source]
         else:
-            mdata = excluded
+            if isinstance(excluded, list):
+                temp = []
+                for md in excluded:
+                    temp.append(md)
+
+                mdata = temp
+            else:
+                mdata = excluded
 
         return mdata
 
@@ -37,7 +64,7 @@ class PgTargetOutput(BaseObserver):
 
     def _insert(self, mdata: list[dict] | dict, metadata: PgMetadata):
         if isinstance(mdata, list):
-            #! cannot handle if mdata is a list
+            #! cannot handle pg_additional_info if mdata is a list
             self.db.ingest(mdata, len(mdata), metadata.table_name, metadata.schema_name)
         elif isinstance(mdata, dict):
             pg_info = self._get_pg_additional_info(mdata)
