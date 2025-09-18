@@ -1,5 +1,4 @@
-from abc import abstractmethod
-from pyparsing import ABC
+from abc import ABC, abstractmethod
 
 
 class BaseProcessor(ABC):
