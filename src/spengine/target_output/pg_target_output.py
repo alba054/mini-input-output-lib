@@ -1,3 +1,4 @@
+from loguru import logger
 from spengine.app.postgre import PgSaService
 from spengine.base.observer import BaseObserver
 from spengine.data_source.data_source_subject import DataSourceSubject
@@ -112,8 +113,12 @@ class PgTargetOutput(BaseObserver):
         data = subject.data
 
         for metadata in self.metadatas:
-            mdata = self._exclude_data(metadata, data)
-            if metadata.mode == "insert":
-                self._insert(mdata, metadata)
-            elif metadata.mode == "update":
-                self._update(mdata, metadata)
+            try:
+                mdata = self._exclude_data(metadata, data)
+                if metadata.mode == "insert":
+                    self._insert(mdata, metadata)
+                elif metadata.mode == "update":
+                    self._update(mdata, metadata)
+            except Exception as e:
+                logger.error(e)
+                continue
