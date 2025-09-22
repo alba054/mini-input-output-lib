@@ -32,6 +32,7 @@ class MappingProcessor(BaseProcessor):
             else:
                 if isinstance(r, list):
                     return r  # return as a list not dictionary
-                mapped.update(r)
+                if r is not None:
+                    mapped.update(r)
 
         return mapped
