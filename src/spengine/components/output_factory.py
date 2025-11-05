@@ -62,6 +62,7 @@ class KafkaOutputFactory:
                 topic=config["topic"],
             ),
             excluded=config.get("exclude", []),
+            batch=config.get("batch", False),
         )
 
 

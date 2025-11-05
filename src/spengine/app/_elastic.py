@@ -1,3 +1,4 @@
+import time
 import elasticsearch
 from loguru import logger
 
@@ -116,7 +117,10 @@ class ElasticClient:
 
     def upsert_data(self, index, data, id):
         body = {"doc": data, "doc_as_upsert": True}
-        result = self.es.update(index=index, id=id, body=body, retry_on_conflict=3)
+
+        result = self.es.update(
+            index=index, id=id, body=body, retry_on_conflict=3, wait_for_active_shards="all", refresh=True
+        )
         logger.info(result)
         logger.success(f"Success upsert data to Index = '{index}' || '{id}'")
 

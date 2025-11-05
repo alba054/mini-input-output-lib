@@ -14,7 +14,7 @@ class KafkaSource(DataSourceSubject):
     def notify(self):
         for message in self.consumer:
             self.data = message.value
-            self.additional_info = {"kafka_timestamp": message.timestamp}
+            self.additional_info = {"kafka_timestamp": message.timestamp, "kafka_topic": message.topic}
 
             for processor in self.processors:
                 try:
