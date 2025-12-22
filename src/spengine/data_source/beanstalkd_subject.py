@@ -38,6 +38,8 @@ class BeanstalkdSubject(DataSourceSubject):
                 self.consumer.delete(job)
             except TimedOutError as _:
                 self.consumer.reconnect()
+            except BrokenPipeError as _:
+                self.consumer.reconnect()
             except Exception as e:
                 import traceback
 

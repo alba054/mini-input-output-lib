@@ -26,6 +26,12 @@ class KafkaBaseConsumer:
         max_poll_records: int,
         auto_commit: bool = True,
     ):
+        self.bootstrap_servers = servers
+        self.auto_offset_reset = offset_reset
+        self.group_id = group_id
+        self.enable_auto_commit = auto_commit
+        self.max_poll_records = max_poll_records
+        self.topics = source_topic
         self.consumer = KafkaConsumer(
             bootstrap_servers=servers,
             auto_offset_reset=offset_reset,
@@ -36,6 +42,18 @@ class KafkaBaseConsumer:
         )
 
         self.consumer.subscribe(source_topic)
+
+    def reconnect(self):
+        self.consumer = KafkaConsumer(
+            bootstrap_servers=self.bootstrap_servers,
+            auto_offset_reset=self.auto_offset_reset,
+            group_id=self.group_id,
+            enable_auto_commit=self.enable_auto_commit,
+            max_poll_records=self.max_poll_records,
+            value_deserializer=lambda m: json.loads(m.decode("utf-8")),
+        )
+
+        self.consumer.subscribe(self.topics)
 
 
 class Consumer(KafkaBaseConsumer):

@@ -19,6 +19,8 @@ class KafkaSource(DataSourceSubject):
             for processor in self.processors:
                 try:
                     self.data = processor.process(data=self.data, additional_info=self.additional_info)
+                except BrokenPipeError as _:
+                    self.consumer.reconnect()
                 except Exception as e:
                     logger.error(e)
                     self.data = None

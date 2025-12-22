@@ -192,8 +192,6 @@ class PgSaService:
             total_data = len(df)
             connect = self.connect
 
-            print(type(connect))
-
             # connect = self.connection()
             # with self.connect.begin() as connect:
             if schema:
@@ -224,7 +222,6 @@ class PgSaService:
             # connect.commit()
             logger.info(f"Total Data Insert = {total_data} || {tb_name}")
             return total_data
-
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
