@@ -222,6 +222,9 @@ class PgSaService:
             # connect.commit()
             logger.info(f"Total Data Insert = {total_data} || {tb_name}")
             return total_data
+        except psycopg2.OperationalError as e:
+            self.connect = create_engine("postgresql+psycopg2://", creator=self.connection).connect()
+            self.ingest(data, chunk_size, tb_name, schema, exclude_cols)
         except Exception as e:
             traceback.print_exc()
             logger.error(e)
@@ -253,6 +256,9 @@ class PgSaService:
             )
 
             connection.commit()
+        except psycopg2.OperationalError as e:
+            self.connect = create_engine("postgresql+psycopg2://", creator=self.connection).connect()
+            self.update_rows(table, update_values, schema, condition, condition_values)
         except Exception as e:
             logger.error(f"Failed to update rows: {e}")
             connection.rollback()
