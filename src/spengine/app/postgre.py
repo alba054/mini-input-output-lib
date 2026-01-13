@@ -1,3 +1,4 @@
+from functools import wraps
 import re
 import traceback
 from geoalchemy2 import Geography, Geometry, WKTElement
@@ -13,6 +14,13 @@ import pandas as pd
 
 from spengine.helper.helper import generate_id_str
 
+from sqlalchemy.exc import (
+    PendingRollbackError,
+    DBAPIError,
+    OperationalError,
+    DisconnectionError,
+)
+
 
 class PgSaService:
     _instances = dict()
@@ -25,6 +33,19 @@ class PgSaService:
         self._password = password
         self._hash = generate_id_str(f"{host}{port}{db}")
         self.connect = create_engine("postgresql+psycopg2://", creator=self.connection).connect()
+
+    def reconnect_handler_wrapper(fn):
+        @wraps(fn)
+        def wrapper(self, *args, **kwargs):
+            try:
+                return fn(self, *args, **kwargs)
+
+            except (PendingRollbackError, DisconnectionError, OperationalError, DBAPIError):
+                print("reconnecting...")
+                self.connect = self.connection()
+                return fn(self, *args, **kwargs)
+
+        return wrapper
 
     def __call__(cls, username, password, host, port, db):
         hash = generate_id_str(f"{host}{port}{db}")
@@ -184,6 +205,7 @@ class PgSaService:
             f"dbname={self._db} user={self._username} password={self._password} host={self._host} port={self._port}"
         )
 
+    @reconnect_handler_wrapper
     def ingest(self, data: list, chunk_size, tb_name, schema=None, exclude_cols=None):
         try:
             df = pd.DataFrame(data)
@@ -232,6 +254,7 @@ class PgSaService:
             # connect.close()
             return 0
 
+    @reconnect_handler_wrapper
     def update_rows(
         self,
         table: str,
@@ -380,6 +403,7 @@ class PgSaService:
             connect.close()
             return 0
 
+    @reconnect_handler_wrapper
     def read_data(self, query: str):
         try:
             connect = self.connect
@@ -388,6 +412,5 @@ class PgSaService:
             return result_df
         except Exception as e:
             logger.error(e)
-            connect.rollback()
             # connect.close()
             return None

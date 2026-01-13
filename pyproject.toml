@@ -10,7 +10,7 @@ where = ["src"]
 
 [project]
 name = "spengine"
-version = "1.5.1"
+version = "1.6.0"
 description = "Mini Input Output Tool"
 authors = [
     { name="Alif", email="yoyojr404@gmail.com" }
