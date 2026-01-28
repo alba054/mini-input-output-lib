@@ -248,9 +248,9 @@ class PgSaService:
             self.connect = create_engine("postgresql+psycopg2://", creator=self.connection).connect()
             self.ingest(data, chunk_size, tb_name, schema, exclude_cols)
         except Exception as e:
+            connect.rollback()
             traceback.print_exc()
             logger.error(e)
-            # connect.rollback()
             # connect.close()
             return 0
 
@@ -412,5 +412,6 @@ class PgSaService:
             return result_df
         except Exception as e:
             logger.error(e)
+            connect.rollback()
             # connect.close()
             return None
