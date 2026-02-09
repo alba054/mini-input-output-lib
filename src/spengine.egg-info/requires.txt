@@ -16,4 +16,4 @@ python-ssdb
 requests
 SQLAlchemy==2.0.41
 srsly
-elasticsearch
+elasticsearch<=8,>=7

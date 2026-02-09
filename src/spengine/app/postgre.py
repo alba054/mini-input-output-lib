@@ -39,11 +39,24 @@ class PgSaService:
         def wrapper(self, *args, **kwargs):
             try:
                 return fn(self, *args, **kwargs)
-
-            except (PendingRollbackError, DisconnectionError, OperationalError, DBAPIError):
+            except (
+                PendingRollbackError,
+                DBAPIError,
+            ):
+                print("reconnecting...")
+                self.connect.rollback()
+                self.connect = self.connection()
+                # return fn(self, *args, **kwargs)
+            except (
+                DisconnectionError,
+                OperationalError,
+            ):
+                self.connect.rollback()
                 print("reconnecting...")
                 self.connect = self.connection()
                 return fn(self, *args, **kwargs)
+            except Exception as e:
+                self.connect.rollback()
 
         return wrapper
 
@@ -207,52 +220,53 @@ class PgSaService:
 
     @reconnect_handler_wrapper
     def ingest(self, data: list, chunk_size, tb_name, schema=None, exclude_cols=None):
-        try:
-            df = pd.DataFrame(data)
-            # if len(df) > 1:
-            #     df = df.drop_duplicates()
-            total_data = len(df)
-            connect = self.connect
+        # try:
+        df = pd.DataFrame(data)
+        # if len(df) > 1:
+        #     df = df.drop_duplicates()
+        total_data = len(df)
+        connect = self.connect
 
-            # connect = self.connection()
-            # with self.connect.begin() as connect:
-            if schema:
-                df.to_sql(
-                    tb_name,
-                    con=connect,
-                    chunksize=chunk_size,
-                    if_exists="append",
-                    index=False,
-                    schema=schema,
-                    method=lambda table, conn, keys, data_iter: self.insert_on_conflict_nothing_custom_set(
-                        table, conn, keys, data_iter, exclude_cols=exclude_cols
-                    ),
-                )
-            else:
-                df.to_sql(
-                    tb_name,
-                    con=connect,
-                    chunksize=chunk_size,
-                    if_exists="append",
-                    index=False,
-                    method=lambda table, conn, keys, data_iter: self.insert_on_conflict_nothing_custom_set(
-                        table, conn, keys, data_iter, exclude_cols=exclude_cols
-                    ),
-                )
+        # connect = self.connection()
+        # with self.connect.begin() as connect:
+        if schema:
+            df.to_sql(
+                tb_name,
+                con=connect,
+                chunksize=chunk_size,
+                if_exists="append",
+                index=False,
+                schema=schema,
+                method=lambda table, conn, keys, data_iter: self.insert_on_conflict_nothing_custom_set(
+                    table, conn, keys, data_iter, exclude_cols=exclude_cols
+                ),
+            )
+        else:
+            df.to_sql(
+                tb_name,
+                con=connect,
+                chunksize=chunk_size,
+                if_exists="append",
+                index=False,
+                method=lambda table, conn, keys, data_iter: self.insert_on_conflict_nothing_custom_set(
+                    table, conn, keys, data_iter, exclude_cols=exclude_cols
+                ),
+            )
 
-            # connect.close()
-            # connect.commit()
-            logger.info(f"Total Data Insert = {total_data} || {tb_name}")
-            return total_data
-        except psycopg2.OperationalError as e:
-            self.connect = create_engine("postgresql+psycopg2://", creator=self.connection).connect()
-            self.ingest(data, chunk_size, tb_name, schema, exclude_cols)
-        except Exception as e:
-            connect.rollback()
-            traceback.print_exc()
-            logger.error(e)
-            # connect.close()
-            return 0
+        # connect.close()
+        # connect.commit()
+        logger.info(f"Total Data Insert = {total_data} || {tb_name}")
+        return total_data
+
+    # except psycopg2.OperationalError as e:
+    #     self.connect = create_engine("postgresql+psycopg2://", creator=self.connection).connect()
+    #     self.ingest(data, chunk_size, tb_name, schema, exclude_cols)
+    # except Exception as e:
+    #     connect.rollback()
+    #     traceback.print_exc()
+    #     logger.error(e)
+    #     # connect.close()
+    #     return 0
 
     @reconnect_handler_wrapper
     def update_rows(

@@ -60,3 +60,4 @@ src/spengine/target_output/pg_target_output.py
 src/spengine/target_output/rabbit_target_output.py
 src/spengine/target_output/s3_target_output.py
 src/spengine/util/call_function_from_string.py
+tests/test_operator.py
