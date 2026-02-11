@@ -34,29 +34,60 @@ class PgSaService:
         self._hash = generate_id_str(f"{host}{port}{db}")
         self.connect = create_engine("postgresql+psycopg2://", creator=self.connection).connect()
 
-    def reconnect_handler_wrapper(fn):
-        @wraps(fn)
-        def wrapper(self, *args, **kwargs):
+    def execute(self, fn, *args, **kwargs):
+        for _ in range(3):
             try:
-                return fn(self, *args, **kwargs)
+                return fn(*args, **kwargs)
             except (
                 PendingRollbackError,
                 DBAPIError,
-            ):
-                print("reconnecting...")
-                self.connect.rollback()
-                self.connect = self.connection()
-                # return fn(self, *args, **kwargs)
-            except (
                 DisconnectionError,
                 OperationalError,
             ):
-                self.connect.rollback()
                 print("reconnecting...")
+                try:
+                    self.connect.rollback()
+                except:
+                    pass
                 self.connect = self.connection()
-                return fn(self, *args, **kwargs)
             except Exception as e:
                 self.connect.rollback()
+                break
+        return None
+
+    def reconnect_handler_wrapper(fn):
+        @wraps(fn)
+        def wrapper(self, *args, **kwargs):
+            for _ in range(3):
+                try:
+                    return fn(self, *args, **kwargs)
+                except (
+                    PendingRollbackError,
+                    DBAPIError,
+                ):
+                    print("reconnecting...")
+                    try:
+                        self.connect.rollback()
+                    except:
+                        pass
+                    self.connect = self.connection()
+                    return fn(self, *args, **kwargs)
+                except (
+                    DisconnectionError,
+                    OperationalError,
+                ):
+                    try:
+                        self.connect.rollback()
+                    except:
+                        pass
+                    print("reconnecting...")
+                    self.connect = self.connection()
+                    return fn(self, *args, **kwargs)
+                except Exception as e:
+                    self.connect.rollback()
+                    break
+
+            return None
 
         return wrapper
 
@@ -218,45 +249,48 @@ class PgSaService:
             f"dbname={self._db} user={self._username} password={self._password} host={self._host} port={self._port}"
         )
 
-    @reconnect_handler_wrapper
+    # @reconnect_handler_wrapper
     def ingest(self, data: list, chunk_size, tb_name, schema=None, exclude_cols=None):
-        # try:
-        df = pd.DataFrame(data)
-        # if len(df) > 1:
-        #     df = df.drop_duplicates()
-        total_data = len(df)
-        connect = self.connect
+        def _wrapper():
+            # try:
+            df = pd.DataFrame(data)
+            # if len(df) > 1:
+            #     df = df.drop_duplicates()
+            total_data = len(df)
+            connect = self.connect
 
-        # connect = self.connection()
-        # with self.connect.begin() as connect:
-        if schema:
-            df.to_sql(
-                tb_name,
-                con=connect,
-                chunksize=chunk_size,
-                if_exists="append",
-                index=False,
-                schema=schema,
-                method=lambda table, conn, keys, data_iter: self.insert_on_conflict_nothing_custom_set(
-                    table, conn, keys, data_iter, exclude_cols=exclude_cols
-                ),
-            )
-        else:
-            df.to_sql(
-                tb_name,
-                con=connect,
-                chunksize=chunk_size,
-                if_exists="append",
-                index=False,
-                method=lambda table, conn, keys, data_iter: self.insert_on_conflict_nothing_custom_set(
-                    table, conn, keys, data_iter, exclude_cols=exclude_cols
-                ),
-            )
+            # connect = self.connection()
+            # with self.connect.begin() as connect:
+            if schema:
+                df.to_sql(
+                    tb_name,
+                    con=connect,
+                    chunksize=chunk_size,
+                    if_exists="append",
+                    index=False,
+                    schema=schema,
+                    method=lambda table, conn, keys, data_iter: self.insert_on_conflict_nothing_custom_set(
+                        table, conn, keys, data_iter, exclude_cols=exclude_cols
+                    ),
+                )
+            else:
+                df.to_sql(
+                    tb_name,
+                    con=connect,
+                    chunksize=chunk_size,
+                    if_exists="append",
+                    index=False,
+                    method=lambda table, conn, keys, data_iter: self.insert_on_conflict_nothing_custom_set(
+                        table, conn, keys, data_iter, exclude_cols=exclude_cols
+                    ),
+                )
 
-        # connect.close()
-        # connect.commit()
-        logger.info(f"Total Data Insert = {total_data} || {tb_name}")
-        return total_data
+            # connect.close()
+            # connect.commit()
+            logger.info(f"Total Data Insert = {total_data} || {tb_name}")
+            return total_data
+
+        return self.execute(_wrapper)
 
     # except psycopg2.OperationalError as e:
     #     self.connect = create_engine("postgresql+psycopg2://", creator=self.connection).connect()
@@ -268,7 +302,7 @@ class PgSaService:
     #     # connect.close()
     #     return 0
 
-    @reconnect_handler_wrapper
+    # @reconnect_handler_wrapper
     def update_rows(
         self,
         table: str,
@@ -277,7 +311,7 @@ class PgSaService:
         condition: str = "",
         condition_values: dict = dict(),
     ):
-        try:
+        def _wrapper():
             connection = self.connect
 
             placeholders = []
@@ -293,13 +327,8 @@ class PgSaService:
             )
 
             connection.commit()
-        except psycopg2.OperationalError as e:
-            self.connect = create_engine("postgresql+psycopg2://", creator=self.connection).connect()
-            self.update_rows(table, update_values, schema, condition, condition_values)
-        except Exception as e:
-            logger.error(f"Failed to update rows: {e}")
-            connection.rollback()
-            return 0
+
+        return self.execute(_wrapper)
 
     def ingest_with_geom(self, data: list, chunk_size, tb_name, schema=None):
         try:
@@ -417,15 +446,12 @@ class PgSaService:
             connect.close()
             return 0
 
-    @reconnect_handler_wrapper
+    # @reconnect_handler_wrapper
     def read_data(self, query: str):
-        try:
+        def _wrapper():
             connect = self.connect
             result_df = pd.read_sql(query, con=connect)
             # connect.close()
             return result_df
-        except Exception as e:
-            logger.error(e)
-            connect.rollback()
-            # connect.close()
-            return None
+
+        return self.execute(_wrapper)
