@@ -49,8 +49,14 @@ class PgSaService:
                     self.connect.rollback()
                 except:
                     pass
+                import traceback
+
+                traceback.print_exc()
                 self.connect = create_engine("postgresql+psycopg2://", creator=self.connection).connect()
             except Exception as e:
+                import traceback
+
+                traceback.print_exc()
                 self.connect.rollback()
                 break
         return None
